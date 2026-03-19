@@ -1,0 +1,51 @@
+name: Playwright Manual E2E
+on:
+  # disparo manual
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'info'
+        type: choice
+        options:
+        - info
+        - warning
+        - debug
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Ensure browsers are installed
+      run: python -m playwright install --with-deps chromium
+
+    - name: Run Playwright tests
+      env:
+        USER_EMAIL: ${{ secrets.USER_EMAIL }}
+        USER_PASS: ${{ secrets.USER_PASS }}
+        BASE_URL: ${{ secrets.BASE_URL }}
+      run: |
+        # Remova o pip install daqui se já colocou no requirements.txt
+        pytest -s --color=yes --capture=tee-sys --html=results/report.html --self-contained-html
+
+    - name: Upload Evidence and Reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-execution-report
+        path: results/
+        retention-days: 30
